@@ -1,6 +1,6 @@
 {
   "name": "pm2-logrotate",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "Module to rotate logs of every pm2 application",
   "main": "app.js",
   "dependencies": {
@@ -37,6 +37,7 @@
     "dateFormat": "YYYY-MM-DD_HH-mm-ss",
     "workerInterval": "30",
     "rotateInterval": "0 0 * * *",
-    "rotateModule": true
+    "rotateModule": true,
+    "folderModule": false
   }
 }
