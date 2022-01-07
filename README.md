@@ -16,6 +16,7 @@ PM2 module to automatically rotate logs of processes managed by PM2.
 - `compress` (Defaults to `false`): Enable compression via gzip for all rotated logs
 - `dateFormat` (Defaults to `YYYY-MM-DD_HH-mm-ss`) : Format of the data used the name the file of log
 - `rotateModule` (Defaults to `true`) : Rotate the log of pm2's module like other apps
+- `folderModule` (Defaults to `false`) : Save the log to the folder, and the folder name is like `dateFormat`.
 - `workerInterval` (Defaults to `30` in secs) : You can control at which interval the worker checks the log size (minimum is `1`)
 - `TZ` (Defaults to system time): This is the standard [tz database timezone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) used to offset the log file saved. For instance, a value of `Etc/GMT+1`, with an hourly log, will save a file at hour `14` GMT with hour `13` (GMT+1) in the log name.
 - `rotateInterval` (Defaults to `0 0 * * *` everyday at midnight): This cron is used to a force rotate when executed.

@@ -1,9 +1,9 @@
-var fs      	= require('graceful-fs');
-var path    	= require('path');
-var pmx     	= require('pmx');
-var pm2     	= require('pm2');
-var moment  	= require('moment-timezone');
-var scheduler	= require('node-schedule');
+var fs        = require('graceful-fs');
+var path      = require('path');
+var pmx       = require('pmx');
+var pm2       = require('pm2');
+var moment    = require('moment-timezone');
+var scheduler = require('node-schedule');
 var zlib      = require('zlib');
 
 var conf = pmx.initModule({
@@ -45,6 +45,7 @@ var DATE_FORMAT = conf.dateFormat || 'YYYY-MM-DD_HH-mm-ss';
 var TZ = conf.TZ;
 var ROTATE_MODULE = JSON.parse(conf.rotateModule) || true;
 var WATCHED_FILES = [];
+var FOLDER_MODULE = conf.folderModule || false;
 
 function get_limit_size() {
   if (conf.max_size === '')
@@ -104,16 +105,28 @@ function proceed(file) {
       // use default
     }
   }
-  var final_name = file.replace(/.([^.]*)$/,'_$1') + '__' + final_time + '.log'; // replace last dot with underscore
-  // if compression is enabled, add gz extention and create a gzip instance
+  var final_name;
+  if (FOLDER_MODULE) {
+    var baseDir = PM2_ROOT_PATH + '/logs';
+    var dir = baseDir + '/' + final_time;
+    if (!fs.existsSync(dir)){
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    var fileArr = file.split('/');
+    var fileName = fileArr[fileArr.length - 1];
+    var final_name = dir + '/' + fileName;
+  } else {
+    var final_name = file.replace(/.log/g, '__') + final_time + '.log'; // replace last dot with underscore
+  }
+    // if compression is enabled, add gz extention and create a gzip instance
   if (COMPRESSION) {
     var GZIP = zlib.createGzip({ level: zlib.Z_BEST_COMPRESSION, memLevel: zlib.Z_BEST_COMPRESSION });
     final_name += ".gz";
   }
 
   // create our read/write streams
-	var readStream = fs.createReadStream(file);
-	var writeStream = fs.createWriteStream(final_name, {'flags': 'w+'});
+  var readStream = fs.createReadStream(file);
+  var writeStream = fs.createWriteStream(final_name, {'flags': 'w+'});
 
   // pipe all stream
   if (COMPRESSION)
@@ -129,14 +142,14 @@ function proceed(file) {
     GZIP.on('error', pmx.notify.bind(pmx));
   }
 
- // when the read is done, empty the file and check for retain option
+  // when the read is done, empty the file and check for retain option
   writeStream.on('finish', function() {
     if (GZIP) {
       GZIP.close();
     }
     readStream.close();
     writeStream.close();
-    fs.truncate(file, function (err) {
+    fs.truncate(file, function (err) {
       if (err) return pmx.notify(err);
       console.log('"' + final_name + '" has been created');
 
