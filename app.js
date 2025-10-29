@@ -233,7 +233,7 @@ pm2.connect(function(err) {
             } else {
               appMap[app.name + '_' + app.pm_id] = app;
             }
-          }
+          // }
           
           proceed_app(app, false);
       });
