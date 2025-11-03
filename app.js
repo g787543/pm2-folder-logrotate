@@ -257,19 +257,19 @@ pm2.connect(function(err) {
           if (typeof(app.pm2_env.axm_options.isModule) !== 'undefined' && !ROTATE_MODULE) return ;
 
           // if apps instances are multi and one of the instances has rotated, ignore
-          if (app.pm2_env.exec_mode !== 'fork_mode') {
-            if (app.pm2_env.instances > 1 && appMap[app.name]) {
-              return;
-            } else {
-              appMap[app.name] = app;
-            }
-          } else {
+          // if (app.pm2_env.exec_mode !== 'fork_mode') {
+          //   if (app.pm2_env.instances > 1 && appMap[app.name]) {
+          //     return;
+          //   } else {
+          //     appMap[app.name] = app;
+          //   }
+          // } else {
             if (appMap[app.name + '_' + app.pm_id]) {
               return;
             } else {
               appMap[app.name + '_' + app.pm_id] = app;
             }
-          }
+          // }
 
           proceed_app(app, true);
         });
