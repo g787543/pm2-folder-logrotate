@@ -118,7 +118,8 @@ function proceed(file) {
   } else {
     var final_name = file.replace(/.log/g, '__') + final_time + '.log'; // replace last dot with underscore
   }
-    // if compression is enabled, add gz extention and create a gzip instance
+  
+  // if compression is enabled, add gz extention and create a gzip instance
   if (COMPRESSION) {
     var GZIP = zlib.createGzip({ level: zlib.Z_BEST_COMPRESSION, memLevel: zlib.Z_BEST_COMPRESSION });
     final_name += ".gz";
@@ -215,27 +216,27 @@ pm2.connect(function(err) {
       var appMap = {};
       // rotate log that are bigger than the limit
       apps.forEach(function(app) {
-          // if its a module and the rotate of module is disabled, ignore
-          if (typeof(app.pm2_env.axm_options.isModule) !== 'undefined' && !ROTATE_MODULE) return ;
+        // if its a module and the rotate of module is disabled, ignore
+        if (typeof(app.pm2_env.axm_options.isModule) !== 'undefined' && !ROTATE_MODULE) return ;
 
-          // if apps instances are multi and one of the instances has rotated, ignore
+        // if apps instances are multi and one of the instances has rotated, ignore
 
-          // Idk why cluster is not working
-          // if (app.pm2_env.exec_mode !== 'fork_mode') {
-          //  if (app.pm2_env.instances > 1 && appMap[app.name]) {
-          //    return;
-          //  } else {
-          //    appMap[app.name] = app;
-          //  }
-          // } else {
-            if (appMap[app.name + '_' + app.pm_id]) {
-              return;
-            } else {
-              appMap[app.name + '_' + app.pm_id] = app;
-            }
-          // }
-          
-          proceed_app(app, false);
+        // Idk why cluster is not working
+        // if (app.pm2_env.exec_mode !== 'fork_mode') {
+        //  if (app.pm2_env.instances > 1 && appMap[app.name]) {
+        //    return;
+        //  } else {
+        //    appMap[app.name] = app;
+        //  }
+        // } else {
+          if (appMap[app.name + '_' + app.pm_id]) {
+            return;
+          } else {
+            appMap[app.name + '_' + app.pm_id] = app;
+          }
+        // }
+        
+        proceed_app(app, false);
       });
     });
 
@@ -248,32 +249,75 @@ pm2.connect(function(err) {
   scheduler.scheduleJob(ROTATE_CRON, function () {
     // get list of process managed by pm2
     pm2.list(function(err, apps) {
-        if (err) return console.error(err.stack || err);
+      if (err) return console.error(err.stack || err);
 
-        var appMap = {};
-        // force rotate for each app
-        apps.forEach(function(app) {
-          // if its a module and the rotate of module is disabled, ignore
-          if (typeof(app.pm2_env.axm_options.isModule) !== 'undefined' && !ROTATE_MODULE) return ;
+      var appMap = {};
+      // force rotate for each app
+      apps.forEach(function(app) {
+        // if its a module and the rotate of module is disabled, ignore
+        if (typeof(app.pm2_env.axm_options.isModule) !== 'undefined' && !ROTATE_MODULE) return ;
 
-          // if apps instances are multi and one of the instances has rotated, ignore
-          // if (app.pm2_env.exec_mode !== 'fork_mode') {
-          //   if (app.pm2_env.instances > 1 && appMap[app.name]) {
-          //     return;
-          //   } else {
-          //     appMap[app.name] = app;
-          //   }
-          // } else {
-            if (appMap[app.name + '_' + app.pm_id]) {
-              return;
-            } else {
-              appMap[app.name + '_' + app.pm_id] = app;
-            }
-          // }
+        // if apps instances are multi and one of the instances has rotated, ignore
+        // if (app.pm2_env.exec_mode !== 'fork_mode') {
+        //   if (app.pm2_env.instances > 1 && appMap[app.name]) {
+        //     return;
+        //   } else {
+        //     appMap[app.name] = app;
+        //   }
+        // } else {
+          if (appMap[app.name + '_' + app.pm_id]) {
+            return;
+          } else {
+            appMap[app.name + '_' + app.pm_id] = app;
+          }
+        // }
 
-          proceed_app(app, true);
-        });
+        proceed_app(app, true);
       });
+    });
+  
+    setTimeout(() => {
+      const { exec } = require('child_process');
+      const PASSWORD = conf.password || null;
+      const baseDir = PM2_ROOT_PATH + '/logs';
+      const yesterday = moment().subtract(1, 'day').format('YYYY-MM-DD'); // 取日期部分
+      const folderToPack = path.join(baseDir, yesterday);
+      const outputTar = path.join(baseDir, `${yesterday}.tar.gz`);
+      const outputEnc = path.join(baseDir, `${yesterday}.tar.gz.enc`);
+
+      if (!fs.existsSync(folderToPack)) {
+        console.log(`ℹ️ 未找到昨日資料夾: ${folderToPack}`);
+        return;
+      }
+
+      console.log(`📦 開始打包: ${folderToPack}`);
+
+      // Step 1: 打包 tar.gz
+      exec(`tar -czf "${outputTar}" -C "${baseDir}" "${yesterday}"`, (err) => {
+        if (err) {
+          pmx.notify(err);
+          return console.error('打包失敗：', err);
+        }
+
+        // Step 2: 若有密碼 → 加密
+        if (PASSWORD) {
+          exec(`openssl enc -aes-256-cbc -pbkdf2 -salt -in "${outputTar}" -out "${outputEnc}" -pass pass:${PASSWORD}`, (err) => {
+            if (err) {
+              pmx.notify(err);
+              return console.error('加密失敗：', err);
+            }
+
+            fs.unlinkSync(outputTar); // 刪除未加密版本
+            console.log(`✅ 已加密打包: ${outputEnc}`);
+
+            // Step 3: 可選：刪除舊資料夾
+            fs.rmSync(folderToPack, { recursive: true, force: true });
+          });
+        } else {
+          console.log(`✅ 已打包: ${outputTar}`);
+        }
+      });
+    }, 60 * 1000); // 等待 60 秒讓 rotate 全部完成
   });
 });
 
