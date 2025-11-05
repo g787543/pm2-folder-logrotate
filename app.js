@@ -280,7 +280,7 @@ pm2.connect(function(err) {
       const { exec } = require('child_process');
       const PASSWORD = conf.password || null;
       const baseDir = PM2_ROOT_PATH + '/logs';
-      const final_time = moment().format(DATE_FORMAT); // 日期
+      const final_time = moment().add(-1, 'minutes').format(DATE_FORMAT); // 日期, 因60秒後執行故減1分鐘
       const folderToPack = path.join(baseDir, final_time);
       const outputTar = path.join(baseDir, `${final_time}.tar.gz`);
       const outputEnc = path.join(baseDir, `${final_time}.tar.gz.enc`);
