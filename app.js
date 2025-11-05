@@ -280,10 +280,10 @@ pm2.connect(function(err) {
       const { exec } = require('child_process');
       const PASSWORD = conf.password || null;
       const baseDir = PM2_ROOT_PATH + '/logs';
-      const yesterday = moment().subtract(1, 'day').format('YYYY-MM-DD'); // 取日期部分
-      const folderToPack = path.join(baseDir, yesterday);
-      const outputTar = path.join(baseDir, `${yesterday}.tar.gz`);
-      const outputEnc = path.join(baseDir, `${yesterday}.tar.gz.enc`);
+      const final_time = moment().format(DATE_FORMAT); // 日期
+      const folderToPack = path.join(baseDir, final_time);
+      const outputTar = path.join(baseDir, `${final_time}.tar.gz`);
+      const outputEnc = path.join(baseDir, `${final_time}.tar.gz.enc`);
 
       if (!fs.existsSync(folderToPack)) {
         console.log(`ℹ️ 未找到昨日資料夾: ${folderToPack}`);
@@ -293,7 +293,7 @@ pm2.connect(function(err) {
       console.log(`📦 開始打包: ${folderToPack}`);
 
       // Step 1: 打包 tar.gz
-      exec(`tar -czf "${outputTar}" -C "${baseDir}" "${yesterday}"`, (err) => {
+      exec(`tar -czf "${outputTar}" -C "${baseDir}" "${final_time}"`, (err) => {
         if (err) {
           pmx.notify(err);
           return console.error('打包失敗：', err);
